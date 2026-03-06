@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ChangeListManager">
+    <list default="true" id="13f16606-cf1c-4348-893a-38789e5dc876" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/../gee concept/.idea/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/.idea/.name" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/.idea/copilot.data.migration.ask2agent.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/.idea/gee concept.iml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/.idea/inspectionProfiles/profiles_settings.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/.idea/misc.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/.idea/modules.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/.idea/vcs.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/app.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/config/settings.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/requirements" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/ui/sidebar.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/ui/tabs/change_tab.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/ui/tabs/maps_tab.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/ui/tabs/report_tab.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/ui/tabs/temporal_tab.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/utils/ai_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/utils/db_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/utils/export_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/utils/gee_utils.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/../gee concept/utils/visualization.py" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="CopilotPersistence">
+    <persistenceIdMap>
+      <entry key="_D:/licenta/Cultural-Heritage-Monitoring/web app" value="3AZL7Yj24EXYHPipZPbg0ebSq4z" />
+    </persistenceIdMap>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="ProjectColorInfo"><![CDATA[{
+  "associatedIndex": 5
+}]]></component>
+  <component name="ProjectId" id="3AZL7Yj24EXYHPipZPbg0ebSq4z" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "git-widget-placeholder": "main",
+    "last_opened_file_path": "D:/licenta/Cultural-Heritage-Monitoring/web app",
+    "nodejs_package_manager_path": "npm",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-js-predefined-d6986cc7102b-76f8388c3a79-JavaScript-PY-243.24978.54" />
+        <option value="bundled-python-sdk-91e3b7efe1d4-466328ff949b-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-243.24978.54" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="13f16606-cf1c-4348-893a-38789e5dc876" name="Changes" comment="" />
+      <created>1772794979720</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1772794979720</updated>
+      <workItem from="1772794981141" duration="58000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="github-copilot-workspace">
+    <instructionFileLocations>
+      <option value=".github/instructions" />
+    </instructionFileLocations>
+    <promptFileLocations>
+      <option value=".github/prompts" />
+    </promptFileLocations>
+  </component>
+</project>
