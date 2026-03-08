@@ -41,17 +41,18 @@ class ChangeTab:
         tab.render()
     """
 
-    def __init__(self, results: dict):
-        self._config     = results['config']
-        self._collection = results['collection']
-        self._aoi        = results['aoi']
-        self._count      = results['count']
-        self._calc       = IndexCalculator()
-        self._stats_calc = StatisticsCalculator()
-        self._detector   = ChangeDetector()
-        self._ai         = AIInterpreter()
-        self._charts     = ChartBuilder()
-        self._widget     = MapWidget(self._config['center_lat'], self._config['center_lon'])
+    def __init__(self, results: dict, history_repo=None):
+        self._config       = results['config']
+        self._collection   = results['collection']
+        self._aoi          = results['aoi']
+        self._count        = results['count']
+        self._history_repo = history_repo          # HistoryRepository | None
+        self._calc         = IndexCalculator()
+        self._stats_calc   = StatisticsCalculator()
+        self._detector     = ChangeDetector()
+        self._ai           = AIInterpreter()
+        self._charts       = ChartBuilder()
+        self._widget       = MapWidget(self._config['center_lat'], self._config['center_lon'])
 
     def render(self) -> None:
         st.subheader('Change Detection & AI Insights')
@@ -84,9 +85,15 @@ class ChangeTab:
         self._render_change_legend()
         st.markdown('---')
         self._render_events_table(events, change_index, first_date, last_date)
-        self._render_stats_comparison(first_image, last_image, change_index,
-                                      first_date, last_date)
-        self._render_ai_section(first_image, last_image, change_index)
+        before_stats, after_stats = self._render_stats_comparison(
+            first_image, last_image, change_index, first_date, last_date
+        )
+        ai_text = self._render_ai_section(first_image, last_image, change_index,
+                                          before_stats, after_stats)
+        self._auto_save_snapshot(
+            change_index, threshold, first_date, last_date,
+            before_stats, after_stats, events, ai_text,
+        )
 
     # ── Data loading ─────────────────────────────────────────────────────────
 
@@ -289,7 +296,7 @@ class ChangeTab:
         c1, c2 = st.columns(2)
         with c1:
             st.markdown(f'#### Before — {first_date}')
-            st.metric('Median',    f"{before_stats.get(f'{idx}_median',   0):.4f}")
+            st.metric('Median',  f"{before_stats.get(f'{idx}_median', 0):.4f}")
             st.metric('Std Dev', f"{before_stats.get(f'{idx}_stdDev', 0):.4f}")
             st.metric('Min',     f"{before_stats.get(f'{idx}_min',    0):.4f}")
             st.metric('Max',     f"{before_stats.get(f'{idx}_max',    0):.4f}")
@@ -298,7 +305,7 @@ class ChangeTab:
             st.markdown(f'#### After — {last_date}')
             median_before = before_stats.get(f'{idx}_median', 0)
             median_after  = after_stats.get(f'{idx}_median', 0)
-            st.metric('Median',    f"{median_after:.4f}", delta=f'{median_after - median_before:+.4f}')
+            st.metric('Median',  f"{median_after:.4f}", delta=f'{median_after - median_before:+.4f}')
             st.metric('Std Dev', f"{after_stats.get(f'{idx}_stdDev', 0):.4f}")
             st.metric('Min',     f"{after_stats.get(f'{idx}_min',    0):.4f}")
             st.metric('Max',     f"{after_stats.get(f'{idx}_max',    0):.4f}")
@@ -309,25 +316,65 @@ class ChangeTab:
         fig = self._charts.before_after_bars(before_vals, after_vals, idx)
         st.plotly_chart(fig, use_container_width=True)
 
-        return before_stats, after_stats   # returned for reuse in AI section
+        return before_stats, after_stats
 
     # ── AI section ───────────────────────────────────────────────────────────
 
-    def _render_ai_section(self, first_image, last_image, idx) -> None:
+    def _render_ai_section(self, first_image, last_image, idx,
+                            before_stats=None, after_stats=None) -> str:
         st.markdown('---')
         st.markdown('### AI Interpretation')
 
-        before_stats = self._stats_calc.run(first_image, self._aoi, idx)
-        after_stats  = self._stats_calc.run(last_image,  self._aoi, idx)
+        if before_stats is None:
+            before_stats = self._stats_calc.run(first_image, self._aoi, idx)
+        if after_stats is None:
+            after_stats  = self._stats_calc.run(last_image,  self._aoi, idx)
 
         with st.spinner('AI is analysing the satellite trends...'):
             text = self._ai.interpret(
                 index_name=idx,
-                before_median=before_stats.get(f'{idx}_median', 0),
-                after_median=after_stats.get(f'{idx}_median',  0),
+                before_mean=before_stats.get(f'{idx}_median', 0),
+                after_mean=after_stats.get(f'{idx}_median',  0),
                 context=self._config['site_name'],
             )
         st.info(text)
+        return text
+
+
+    # ── Auto-save snapshot ────────────────────────────────────────────────────
+
+    def _auto_save_snapshot(self, idx, threshold, first_date, last_date,
+                             before_stats, after_stats, events, ai_text) -> None:
+        """Persist the change-detection run to history DB (silent, best-effort)."""
+        if not self._history_repo:
+            return
+        from utils.hash_utils import HashUtils
+        history_id = self._history_repo.get_id_by_hash(
+            HashUtils.hash_config(self._config)
+        )
+        if not history_id:
+            return  # session not yet saved — skip
+
+        snap_key = f'snap_saved_{history_id}_{idx}_{first_date}_{last_date}'
+        if st.session_state.get(snap_key):
+            return  # already saved this run
+
+        try:
+            self._history_repo.save_snapshot(history_id, {
+                'index_name':    idx,
+                'first_date':    first_date,
+                'last_date':     last_date,
+                'threshold':     threshold,
+                'before_median': before_stats.get(f'{idx}_median', 0),
+                'after_median':  after_stats.get(f'{idx}_median',  0),
+                'delta_median':  (after_stats.get(f'{idx}_median', 0)
+                                  - before_stats.get(f'{idx}_median', 0)),
+                'events':        events,
+                'ai_text':       ai_text or '',
+            })
+            st.session_state[snap_key] = True
+        except Exception:
+            pass  # never break the UI over a save failure
 
     # ── Helpers ──────────────────────────────────────────────────────────────
 

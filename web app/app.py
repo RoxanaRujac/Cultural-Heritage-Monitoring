@@ -9,6 +9,7 @@ Responsibilities:
   - Orchestrate the analysis pipeline
   - Pass results to the correct tab
 
+No business logic lives here. Every action is delegated to a dedicated class.
 """
 
 import streamlit as st
@@ -16,6 +17,7 @@ import ee
 from datetime import datetime
 
 from config.settings import PAGE_CONFIG
+from utils.hash_utils import HashUtils
 from config.theme import THEME_CSS
 
 # Backend
@@ -32,12 +34,14 @@ from frontend.tabs.maps_tab import MapsTab
 from frontend.tabs.temporal_tab import TemporalTab
 from frontend.tabs.change_tab import ChangeTab
 from frontend.tabs.report_tab import ReportTab
+from frontend.tabs.history_tab import HistoryTab
+from backend.db.history_repository import HistoryRepository
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(**PAGE_CONFIG)
 st.markdown(THEME_CSS, unsafe_allow_html=True)
 
-TAB_NAMES = ['Interactive Maps', 'Temporal Analysis', 'Change Detection', 'Report']
+TAB_NAMES = ['Interactive Maps', 'Temporal Analysis', 'Change Detection', 'Report', 'History']
 
 
 # ── Session state defaults ───────────────────────────────────────────────────
@@ -102,6 +106,7 @@ def main() -> None:
     idx_calc        = _get_index_calculator()
     stats_calc      = _get_stats_calculator()
     analysis_repo   = AnalysisRepository(db)
+    history_repo    = HistoryRepository(db)
 
     # Sidebar → config dict
     config = Sidebar().render()
@@ -118,7 +123,7 @@ def main() -> None:
 
     # Run analysis when requested
     if config['run_analysis']:
-        _run_analysis(config, aoi, db, col_builder, idx_calc, stats_calc, analysis_repo)
+        _run_analysis(config, aoi, db, col_builder, idx_calc, stats_calc, analysis_repo, history_repo)
 
     # Propagate fresh custom indices into stored results
     if st.session_state.analysis_results:
@@ -128,9 +133,18 @@ def main() -> None:
 
     # Render tabs
     if st.session_state.analysis_results:
-        _render_tabs(st.session_state.analysis_results, db)
+        _render_tabs(st.session_state.analysis_results, db, history_repo)
     else:
-        st.info("Configure parameters in the sidebar and click 'Run Analysis' to begin.")
+        # Still allow browsing history even before running a new analysis
+        selected_tab = st.radio(
+            label='tabs', options=['History'],
+            horizontal=True, label_visibility='collapsed',
+            key='tab_selector_empty',
+        )
+        if selected_tab == 'History':
+            HistoryTab(db, _get_collection_builder(), _get_index_calculator()).render()
+        else:
+            st.info("Configure parameters in the sidebar and click 'Run Analysis' to begin.")
 
     st.markdown('---')
     st.markdown(
@@ -143,7 +157,7 @@ def main() -> None:
 
 # ── Analysis pipeline ────────────────────────────────────────────────────────
 def _run_analysis(
-    config, aoi, db, col_builder, idx_calc, stats_calc, analysis_repo
+    config, aoi, db, col_builder, idx_calc, stats_calc, analysis_repo, history_repo
 ) -> None:
     with st.spinner('Connecting to satellite archive…'):
         collection = col_builder.build(
@@ -175,6 +189,14 @@ def _run_analysis(
     config['image_count'] = count
     analysis_repo.save(config, stats)
 
+    # Store indices list and image count in history meta
+    try:
+        hid = history_repo.get_id_by_hash(HashUtils.hash_config(config))
+        if hid:
+            history_repo.update_indices_meta(hid, config['indices'], count)
+    except Exception:
+        pass
+
     st.session_state.analysis_results = _build_results(
         config, collection, count, aoi, stats, is_from_cache=False
     )
@@ -192,7 +214,7 @@ def _build_results(config, collection, count, aoi, stats, is_from_cache) -> dict
 
 
 # ── Tab rendering ─────────────────────────────────────────────────────────────
-def _render_tabs(results: dict, db: DBConnection) -> None:
+def _render_tabs(results: dict, db: DBConnection, history_repo) -> None:
     selected_tab = st.radio(
         label='tabs',
         options=TAB_NAMES,
@@ -208,9 +230,11 @@ def _render_tabs(results: dict, db: DBConnection) -> None:
     elif selected_tab == TAB_NAMES[1]:
         TemporalTab(results, db).render()
     elif selected_tab == TAB_NAMES[2]:
-        ChangeTab(results).render()
+        ChangeTab(results, history_repo=history_repo).render()
     elif selected_tab == TAB_NAMES[3]:
         ReportTab(results).render()
+    elif selected_tab == TAB_NAMES[4]:
+        HistoryTab(db, _get_collection_builder(), _get_index_calculator()).render()
 
 
 # ── Custom region helper ──────────────────────────────────────────────────────
