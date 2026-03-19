@@ -3,13 +3,11 @@ Heritage Site Monitoring System — Entry Point
 
 Responsibilities:
   - Configure Streamlit page
-  - Initialise GEE once
-  - Initialise DB connection once
+  - Initialise GEE
+  - Initialise DB connection
   - Render sidebar → get config
   - Orchestrate the analysis pipeline
   - Pass results to the correct tab
-
-No business logic lives here. Every action is delegated to a dedicated class.
 """
 
 import streamlit as st
@@ -27,6 +25,8 @@ from backend.gee.index_calculator import IndexCalculator
 from backend.gee.statistics_calculator import StatisticsCalculator
 from backend.db.db_connection import DBConnection
 from backend.db.analysis_repository import AnalysisRepository
+from backend.db.history_repository import HistoryRepository
+
 
 # Frontend
 from frontend.sidebar.sidebar import Sidebar
@@ -35,13 +35,13 @@ from frontend.tabs.temporal_tab import TemporalTab
 from frontend.tabs.change_tab import ChangeTab
 from frontend.tabs.report_tab import ReportTab
 from frontend.tabs.history_tab import HistoryTab
-from backend.db.history_repository import HistoryRepository
+from frontend.tabs.land_cover_tab import render_land_cover_tab
 
 # ── Page config ──────────────────────────────────────────────────────────────
 st.set_page_config(**PAGE_CONFIG)
 st.markdown(THEME_CSS, unsafe_allow_html=True)
 
-TAB_NAMES = ['Interactive Maps', 'Temporal Analysis', 'Change Detection', 'Report', 'History']
+TAB_NAMES = ['Interactive Maps', 'Temporal Analysis', 'Change Detection', 'Land Cover Classification', 'Report', 'History']
 
 
 # ── Session state defaults ───────────────────────────────────────────────────
@@ -232,8 +232,10 @@ def _render_tabs(results: dict, db: DBConnection, history_repo) -> None:
     elif selected_tab == TAB_NAMES[2]:
         ChangeTab(results, history_repo=history_repo).render()
     elif selected_tab == TAB_NAMES[3]:
-        ReportTab(results).render()
+        render_land_cover_tab(results)
     elif selected_tab == TAB_NAMES[4]:
+        ReportTab(results).render()
+    elif selected_tab == TAB_NAMES[5]:
         HistoryTab(db, _get_collection_builder(), _get_index_calculator()).render()
 
 
