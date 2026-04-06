@@ -1,6 +1,7 @@
 """
 Responsible for: rendering the sidebar and returning the analysis config dict.
-FIXED: Preserve custom region coordinates when not selecting a new preset
+FIXED: Site name updates automatically when preset changes; custom region name
+       updates when coordinates are obtained from map or manual input.
 """
 
 import streamlit as st
@@ -18,8 +19,6 @@ class Sidebar:
     """
     Renders the full left sidebar and returns a config dict consumed by
     the rest of the app.
-
-    FIXED: Custom region coordinates are now preserved across reruns.
 
     Usage:
         sidebar = Sidebar()
@@ -64,77 +63,112 @@ class Sidebar:
             'sample_size':      sample_size,
         }
 
-    # ── Section renderers (each renders one logical block) ──────────────────
+    # ── Section renderers ────────────────────────────────────────────────────
 
     def _render_site_section(self) -> None:
         st.subheader('Site Selection')
 
+        preset_options = list(SITE_PRESETS.keys())
+
+        # Determine current index for selectbox so it reflects session state
+        current_preset = st.session_state.get('current_preset', preset_options[0])
+        if current_preset not in preset_options:
+            current_preset = preset_options[0]
+        current_index = preset_options.index(current_preset)
+
         preset_name = st.selectbox(
             'Select Heritage Site',
-            list(SITE_PRESETS.keys()),
+            preset_options,
+            index=current_index,
+            key='preset_selectbox',
         )
 
-        # Don't override custom region coordinates on every rerun
+        # ── Detect preset change and sync everything ─────────────────────────
         if preset_name != st.session_state.get('current_preset'):
             st.session_state.current_preset = preset_name
 
             if preset_name != 'Custom Region':
                 p = SITE_PRESETS[preset_name]
+                # Auto-update site name to the new preset name
                 st.session_state.site_name  = preset_name
                 st.session_state.center_lat = p['lat']
                 st.session_state.center_lon = p['lon']
                 st.session_state.buffer_km  = p['buffer_km']
-                st.session_state.custom_region_set = False  # Reset custom flag
+                st.session_state.custom_region_set = False
+                # Bump the name widget key so the text_input re-renders with
+                # the new value instead of keeping the stale cached value.
+                st.session_state['_site_name_key'] = st.session_state.get('_site_name_key', 0) + 1
             else:
-                if st.session_state.get('site_name') not in ('Custom Region', 'Custom Region (Point)', 'Custom Region (Polygon)'):
-                    st.session_state.site_name = 'Custom Region'
+                st.session_state.site_name = 'Custom Region'
+                st.session_state.custom_region_set = False
 
+        # ── Render inputs ────────────────────────────────────────────────────
         if preset_name != 'Custom Region':
-            # Standard preset selected - allow name override
+            # Use a versioned key so the widget re-draws when the preset changes
+            name_key = f"site_name_input_{st.session_state.get('_site_name_key', 0)}"
             site_name = st.text_input(
                 'Site Name (Optional)',
-                value=st.session_state.get('site_name', preset_name),
-                key='site_name_input',
+                value=st.session_state.site_name,
+                key=name_key,
             )
-            st.session_state.site_name = site_name
+            st.session_state.site_name = site_name if site_name else preset_name
+
         else:
-            # Custom region selected
-            if st.session_state.get('site_name', '') in (
-                'Custom Region (Point)', 'Custom Region (Polygon)'
-            ):
+            # Custom region
+            if st.session_state.get('custom_region_set'):
                 st.success(f"""
                  **Region Selected**
+                - Name: {st.session_state.get('site_name', 'Custom Region')}
                 - Lat: {st.session_state.center_lat:.4f}°
                 - Lon: {st.session_state.center_lon:.4f}°
                 - Radius: {st.session_state.buffer_km} km
                 """)
+                site_name = st.text_input(
+                    'Edit Site Name',
+                    value=st.session_state.get('site_name', 'Custom Region'),
+                    key='site_name_input_custom_set',
+                )
+                st.session_state.site_name = site_name
 
-            site_name = st.text_input(
-                'Site Name (Optional)',
-                value=st.session_state.get('site_name', 'Custom Region'),
-                key='site_name_input',
-            )
-            st.session_state.site_name = site_name
+            else:
+                site_name = st.text_input(
+                    'Site Name (for custom region)',
+                    value=st.session_state.get('site_name', 'Custom Region'),
+                    key='site_name_input_custom_notset',
+                )
+                st.session_state.site_name = site_name
 
-            if not st.session_state.get('custom_region_set'):
                 with st.expander(' Manual Coordinates Entry'):
                     col1, col2 = st.columns(2)
                     with col1:
-                        lat = st.number_input('Latitude', value=st.session_state.center_lat,
-                                             format='%.4f', key='lat_input')
+                        lat = st.number_input(
+                            'Latitude',
+                            value=st.session_state.center_lat,
+                            format='%.4f',
+                            key='lat_input',
+                        )
                     with col2:
-                        lon = st.number_input('Longitude', value=st.session_state.center_lon,
-                                             format='%.4f', key='lon_input')
+                        lon = st.number_input(
+                            'Longitude',
+                            value=st.session_state.center_lon,
+                            format='%.4f',
+                            key='lon_input',
+                        )
 
-                    if lat != st.session_state.center_lat or lon != st.session_state.center_lon:
+                    if (lat != st.session_state.center_lat or
+                            lon != st.session_state.center_lon):
                         st.session_state.center_lat = lat
                         st.session_state.center_lon = lon
                         st.session_state.custom_region_set = True
-                        st.success('Coordinates updated!')
+                        # Keep whatever name the user typed above
+                        st.success('✓ Coordinates updated!')
 
+        # ── Buffer slider (shared) ───────────────────────────────────────────
         buffer_km = st.slider(
-            'Analysis Radius (km)', 0.5, 10.0,
-            st.session_state.buffer_km, 0.5,
+            'Analysis Radius (km)',
+            0.5, 10.0,
+            st.session_state.buffer_km,
+            0.5,
         )
         st.session_state.buffer_km = buffer_km
 
@@ -239,7 +273,6 @@ class Sidebar:
                     'expression_bands': expr_map,
                 }
 
-            # Palette / min / max
             cp, cmin, cmax = st.columns(3)
             with cp:
                 pal_name = st.selectbox('Palette', list(AVAILABLE_PALETTES.keys()),
@@ -271,7 +304,6 @@ class Sidebar:
                     indices.append(custom_name)
                     st.success(f' {custom_name} added!')
 
-            # List active custom indices with remove buttons
             if st.session_state.get('custom_indices'):
                 st.markdown('**Active custom indices:**')
                 for ci in st.session_state.custom_indices:
@@ -290,8 +322,8 @@ class Sidebar:
 
     def _render_advanced_section(self) -> tuple[float, int]:
         with st.expander('Advanced Options'):
-            threshold    = st.slider('Change Detection Threshold', 0.1, 1.0, 0.2, 0.05)
-            sample_size  = st.slider('Time Series Sample Size', 5, 50, 20, 5)
+            threshold   = st.slider('Change Detection Threshold', 0.1, 1.0, 0.2, 0.05)
+            sample_size = st.slider('Time Series Sample Size', 5, 50, 20, 5)
         return threshold, sample_size
 
     def _render_run_button(self) -> bool:

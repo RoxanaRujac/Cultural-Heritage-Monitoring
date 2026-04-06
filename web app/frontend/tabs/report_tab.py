@@ -61,12 +61,12 @@ class ReportTab:
         st.markdown('### Executive Summary')
         cols = st.columns(3)
         self._cards.render_in_column(cols[0], 'Site Information',
-                                     self._config['site_name'], 'purple')
+                                     self._config['site_name'])
         self._cards.render_in_column(cols[1], 'Images Analysed',
-                                     f"{self._count} Sentinel-2 scenes",  'pink')
+                                     f"{self._count} Sentinel-2 scenes")
         days = (self._config['end_date'] - self._config['start_date']).days
         self._cards.render_in_column(cols[2], 'Time Span',
-                                     f'{days} days', 'blue')
+                                     f'{days} days')
 
     def _render_site_info(self) -> None:
         st.markdown('### Site Location & Parameters')

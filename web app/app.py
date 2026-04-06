@@ -43,7 +43,7 @@ TAB_NAMES = ['Interactive Maps', 'Temporal Analysis', 'Change Detection', 'Land 
 # ── Session state defaults ───────────────────────────────────────────────────
 def _init_session_state() -> None:
     defaults = {
-        'site_name':           'Alba Iulia Fortress',
+        'site_name':           None,
         'center_lat':          46.0686,
         'center_lon':          23.5714,
         'buffer_km':           2.0,
@@ -52,7 +52,7 @@ def _init_session_state() -> None:
         'custom_indices':      [],
         'latest_drawings':     [],
         'custom_region_set':   False,
-        'current_preset':      'Alba Iulia Fortress (Romania)',
+        'current_preset':      None,
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -109,16 +109,12 @@ def main() -> None:
     # Sidebar → config dict
     config = Sidebar().render()
 
-    # ✅ Check if user selected "Custom Region" preset
     is_custom = st.session_state.get('current_preset') == 'Custom Region'
 
-    # ✅ Show custom region map ONLY if selected AND not already set
     if is_custom and not st.session_state.get('custom_region_set'):
         _render_custom_region_map(config)
-        st.stop()  # ✅ Stop here to let user interact with map
+        st.stop()
 
-    # ✅ If we reach here, coordinates are already valid:
-    # Either user selected a preset, or custom region is set
 
     # Build AOI using coordinates from sidebar (which are now synced)
     aoi = col_builder.build_aoi(
@@ -272,31 +268,41 @@ def _update_coordinates_from_drawing() -> None:
         return
     try:
         geometry = drawings[-1]['geometry']
+
+        # Get the user-typed site name (if any) before overwriting session state
+        typed_name = st.session_state.get('site_name', '').strip()
+
         if geometry['type'] == 'Point':
             lon, lat = geometry['coordinates']
+            # Use the name the user typed, or fall back to a descriptive default
+            new_name = typed_name if typed_name and typed_name != 'Custom Region' \
+                       else f'Custom Point ({lat:.4f}°N, {lon:.4f}°E)'
             st.session_state.update(
                 center_lat=lat,
                 center_lon=lon,
-                site_name='Custom Region (Point)',
-                custom_region_set=True
+                site_name=new_name,
+                custom_region_set=True,
             )
-            st.success(f' Updated: {lat:.4f}°N, {lon:.4f}°E')
+            st.success(f'✓ Updated: {new_name} — {lat:.4f}°N, {lon:.4f}°E')
             st.rerun()
+
         elif geometry['type'] == 'Polygon':
             coords = geometry['coordinates'][0]
             lat = sum(c[1] for c in coords) / len(coords)
             lon = sum(c[0] for c in coords) / len(coords)
+            new_name = typed_name if typed_name and typed_name != 'Custom Region' \
+                       else f'Custom Polygon ({lat:.4f}°N, {lon:.4f}°E)'
             st.session_state.update(
                 center_lat=lat,
                 center_lon=lon,
-                site_name='Custom Region (Polygon)',
-                custom_region_set=True
+                site_name=new_name,
+                custom_region_set=True,
             )
-            st.success(f'Polygon centre: {lat:.4f}°N, {lon:.4f}°E')
+            st.success(f'✓ Polygon centre: {new_name} — {lat:.4f}°N, {lon:.4f}°E')
             st.rerun()
+
     except Exception as exc:
         st.error(str(exc))
-
 
 if __name__ == '__main__':
     main()
