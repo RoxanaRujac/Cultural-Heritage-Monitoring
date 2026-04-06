@@ -1,13 +1,10 @@
 """
-Heritage Site Monitoring System — Entry Point
+Heritage Site Monitoring System — Entry Point (FIXED v2)
 
-Responsibilities:
-  - Configure Streamlit page
-  - Initialise GEE
-  - Initialise DB connection
-  - Render sidebar → get config
-  - Orchestrate the analysis pipeline
-  - Pass results to the correct tab
+Key fixes:
+- Properly sync coordinates between sidebar and app
+- Don't override custom region coordinates
+- Only show map when custom region is selected AND not already set
 """
 
 import streamlit as st
@@ -26,7 +23,6 @@ from backend.gee.statistics_calculator import StatisticsCalculator
 from backend.db.db_connection import DBConnection
 from backend.db.analysis_repository import AnalysisRepository
 from backend.db.history_repository import HistoryRepository
-
 
 # Frontend
 from frontend.sidebar.sidebar import Sidebar
@@ -47,14 +43,16 @@ TAB_NAMES = ['Interactive Maps', 'Temporal Analysis', 'Change Detection', 'Land 
 # ── Session state defaults ───────────────────────────────────────────────────
 def _init_session_state() -> None:
     defaults = {
-        'site_name':        'Alba Iulia Fortress',
-        'center_lat':       46.0686,
-        'center_lon':       23.5714,
-        'buffer_km':        2.0,
-        'analysis_results': None,
-        'active_tab':       0,
-        'custom_indices':   [],
-        'latest_drawings':  [],
+        'site_name':           'Alba Iulia Fortress',
+        'center_lat':          46.0686,
+        'center_lon':          23.5714,
+        'buffer_km':           2.0,
+        'analysis_results':    None,
+        'active_tab':          0,
+        'custom_indices':      [],
+        'latest_drawings':     [],
+        'custom_region_set':   False,
+        'current_preset':      'Alba Iulia Fortress (Romania)',
     }
     for key, value in defaults.items():
         if key not in st.session_state:
@@ -111,14 +109,22 @@ def main() -> None:
     # Sidebar → config dict
     config = Sidebar().render()
 
-    # Custom-region map (shown above the tabs when no preset is selected)
-    if config['site_name'] == 'Custom Region':
-        _render_custom_region_map(config)
-        return
+    # ✅ Check if user selected "Custom Region" preset
+    is_custom = st.session_state.get('current_preset') == 'Custom Region'
 
-    # Build AOI
+    # ✅ Show custom region map ONLY if selected AND not already set
+    if is_custom and not st.session_state.get('custom_region_set'):
+        _render_custom_region_map(config)
+        st.stop()  # ✅ Stop here to let user interact with map
+
+    # ✅ If we reach here, coordinates are already valid:
+    # Either user selected a preset, or custom region is set
+
+    # Build AOI using coordinates from sidebar (which are now synced)
     aoi = col_builder.build_aoi(
-        config['center_lat'], config['center_lon'], config['buffer_km']
+        st.session_state.center_lat,  # Use session state, not config
+        st.session_state.center_lon,
+        st.session_state.buffer_km
     )
 
     # Run analysis when requested
@@ -243,10 +249,9 @@ def _render_tabs(results: dict, db: DBConnection, history_repo) -> None:
 def _render_custom_region_map(config: dict) -> None:
     """Minimal draw-on-map UI for custom region selection."""
     from frontend.components.map_widget import MapWidget
-    from folium.plugins import Draw
 
     st.subheader('Select Your Custom Region')
-    st.info('Draw a point or polygon on the map, then click "Get Coordinates".')
+    st.info(' Draw a point or polygon on the map, then click "Get Coordinates".')
 
     widget = MapWidget(config['center_lat'], config['center_lon'])
     m = widget.create_base_map(zoom=10)
@@ -269,16 +274,26 @@ def _update_coordinates_from_drawing() -> None:
         geometry = drawings[-1]['geometry']
         if geometry['type'] == 'Point':
             lon, lat = geometry['coordinates']
-            st.session_state.update(center_lat=lat, center_lon=lon,
-                                    site_name='Custom Region (Point)')
-            st.success(f'Updated: {lat:.4f}°N, {lon:.4f}°E')
+            st.session_state.update(
+                center_lat=lat,
+                center_lon=lon,
+                site_name='Custom Region (Point)',
+                custom_region_set=True
+            )
+            st.success(f' Updated: {lat:.4f}°N, {lon:.4f}°E')
+            st.rerun()
         elif geometry['type'] == 'Polygon':
             coords = geometry['coordinates'][0]
             lat = sum(c[1] for c in coords) / len(coords)
             lon = sum(c[0] for c in coords) / len(coords)
-            st.session_state.update(center_lat=lat, center_lon=lon,
-                                    site_name='Custom Region (Polygon)')
+            st.session_state.update(
+                center_lat=lat,
+                center_lon=lon,
+                site_name='Custom Region (Polygon)',
+                custom_region_set=True
+            )
             st.success(f'Polygon centre: {lat:.4f}°N, {lon:.4f}°E')
+            st.rerun()
     except Exception as exc:
         st.error(str(exc))
 

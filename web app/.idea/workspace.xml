@@ -7,6 +7,8 @@
     <list default="true" id="13f16606-cf1c-4348-893a-38789e5dc876" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/sidebar/sidebar.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/sidebar/sidebar.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/tabs/land_cover_tab.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tabs/land_cover_tab.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -38,6 +40,7 @@
   </component>
   <component name="PropertiesComponent">{
   &quot;keyToString&quot;: {
+    &quot;Python.app.executor&quot;: &quot;Debug&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
@@ -75,11 +78,24 @@
       <workItem from="1773295740488" duration="3199000" />
       <workItem from="1773644476186" duration="1086000" />
       <workItem from="1773732365381" duration="544000" />
+      <workItem from="1773901471398" duration="1859000" />
+      <workItem from="1774275452295" duration="15000" />
+      <workItem from="1774453171260" duration="678000" />
+      <workItem from="1774460397543" duration="1395000" />
+      <workItem from="1774506319495" duration="1793000" />
+      <workItem from="1774717315099" duration="2995000" />
+      <workItem from="1774863591871" duration="673000" />
+      <workItem from="1775106816805" duration="1895000" />
+      <workItem from="1775378192551" duration="7931000" />
+      <workItem from="1775460958074" duration="26000" />
     </task>
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/web_app$app.coverage" NAME="app Coverage Results" MODIFIED="1775389973107" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$" />
   </component>
   <component name="github-copilot-workspace">
     <instructionFileLocations>

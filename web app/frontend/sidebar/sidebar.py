@@ -1,5 +1,6 @@
 """
 Responsible for: rendering the sidebar and returning the analysis config dict.
+FIXED: Preserve custom region coordinates when not selecting a new preset
 """
 
 import streamlit as st
@@ -17,6 +18,8 @@ class Sidebar:
     """
     Renders the full left sidebar and returns a config dict consumed by
     the rest of the app.
+
+    FIXED: Custom region coordinates are now preserved across reruns.
 
     Usage:
         sidebar = Sidebar()
@@ -71,19 +74,23 @@ class Sidebar:
             list(SITE_PRESETS.keys()),
         )
 
-        # Update session state when preset changes
+        # Don't override custom region coordinates on every rerun
         if preset_name != st.session_state.get('current_preset'):
             st.session_state.current_preset = preset_name
+
             if preset_name != 'Custom Region':
                 p = SITE_PRESETS[preset_name]
                 st.session_state.site_name  = preset_name
                 st.session_state.center_lat = p['lat']
                 st.session_state.center_lon = p['lon']
                 st.session_state.buffer_km  = p['buffer_km']
+                st.session_state.custom_region_set = False  # Reset custom flag
             else:
-                st.session_state.site_name = 'Custom Region'
+                if st.session_state.get('site_name') not in ('Custom Region', 'Custom Region (Point)', 'Custom Region (Polygon)'):
+                    st.session_state.site_name = 'Custom Region'
 
         if preset_name != 'Custom Region':
+            # Standard preset selected - allow name override
             site_name = st.text_input(
                 'Site Name (Optional)',
                 value=st.session_state.get('site_name', preset_name),
@@ -91,6 +98,7 @@ class Sidebar:
             )
             st.session_state.site_name = site_name
         else:
+            # Custom region selected
             if st.session_state.get('site_name', '') in (
                 'Custom Region (Point)', 'Custom Region (Polygon)'
             ):
@@ -108,16 +116,21 @@ class Sidebar:
             )
             st.session_state.site_name = site_name
 
-            with st.expander(' Manual Coordinates Entry'):
-                col1, col2 = st.columns(2)
-                with col1:
-                    lat = st.number_input('Latitude', value=st.session_state.center_lat,
-                                         format='%.4f', key='lat_input')
-                with col2:
-                    lon = st.number_input('Longitude', value=st.session_state.center_lon,
-                                         format='%.4f', key='lon_input')
-                st.session_state.center_lat = lat
-                st.session_state.center_lon = lon
+            if not st.session_state.get('custom_region_set'):
+                with st.expander(' Manual Coordinates Entry'):
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        lat = st.number_input('Latitude', value=st.session_state.center_lat,
+                                             format='%.4f', key='lat_input')
+                    with col2:
+                        lon = st.number_input('Longitude', value=st.session_state.center_lon,
+                                             format='%.4f', key='lon_input')
+
+                    if lat != st.session_state.center_lat or lon != st.session_state.center_lon:
+                        st.session_state.center_lat = lat
+                        st.session_state.center_lon = lon
+                        st.session_state.custom_region_set = True
+                        st.success('Coordinates updated!')
 
         buffer_km = st.slider(
             'Analysis Radius (km)', 0.5, 10.0,
@@ -283,7 +296,10 @@ class Sidebar:
 
     def _render_run_button(self) -> bool:
         run = st.button('Run Analysis', type='primary', use_container_width=True)
-        if run and st.session_state.get('site_name') == 'Custom Region':
-            st.warning('Please select a region on the map first!')
-            return False
+
+        if run and st.session_state.get('current_preset') == 'Custom Region':
+            if not st.session_state.get('custom_region_set'):
+                st.warning('Please select a region on the map first (or enter coordinates manually)')
+                return False
+
         return run
