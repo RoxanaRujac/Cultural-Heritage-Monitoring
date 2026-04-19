@@ -6,6 +6,8 @@ import streamlit as st
 import folium
 import ee
 from datetime import datetime
+import tempfile
+import os
 
 import geemap.foliumap as geemap
 
@@ -95,6 +97,8 @@ class ChangeTab:
             before_stats, after_stats, events, ai_text,
         )
 
+
+
     # ── Data loading ─────────────────────────────────────────────────────────
 
     def _load_boundary_images(self):
@@ -115,9 +119,11 @@ class ChangeTab:
         col1, col2 = st.columns([3, 1])
         with col1:
             change_index = st.selectbox('Select Index for Change Detection', self._config['indices'])
+
+        default_threshold = self._config.get('change_threshold', 0.20)
         with col2:
-            threshold = st.slider('Change Threshold', 0.05, 0.5, 0.20, 0.05)
-        return change_index, threshold
+            threshold = st.slider('Change Threshold', min_value=0.05, max_value=0.5, value=0.20, step=0.01)
+            return change_index, threshold
 
     # ── Split map ─────────────────────────────────────────────────────────────
 
@@ -144,6 +150,10 @@ class ChangeTab:
             right = geemap.ee_tile_layer(after_blend,  blend_params, f'After {idx}: {last_date}')
             m.split_map(left_layer=left, right_layer=right)
             m.centerObject(self._aoi, 14)
+
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".html") as tmp_html:
+                m.save(tmp_html.name)
+                path_to_html = tmp_html.name
 
             if _HAS_ST_FOLIUM:
                 st_folium(m, height=520, width='100%', returned_objects=[])

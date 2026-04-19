@@ -252,13 +252,19 @@ def _render_custom_region_map(config: dict) -> None:
     widget = MapWidget(config['center_lat'], config['center_lon'])
     m = widget.create_base_map(zoom=10)
     widget.add_draw_control(m)
-    out = widget.render(m)
+    out = widget.render(m, key='custom_region_map_stable')
 
     if out and 'all_drawings' in out:
-        st.session_state.latest_drawings = out['all_drawings']
-
-    if st.button('Get Coordinates from Map', type='primary', use_container_width=True):
-        _update_coordinates_from_drawing()
+        st.session_state['_pending_drawings'] = out['all_drawings']
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        if st.button('Get Coordinates from Map', type='primary', use_container_width=True):
+            pending = st.session_state.get('_pending_drawings') or \
+                      st.session_state.get('latest_drawings', [])
+            st.session_state.latest_drawings = pending
+            _update_coordinates_from_drawing()
+    with col2:
+        pending = st.session_state.get('_pending_drawings', [])
 
 
 def _update_coordinates_from_drawing() -> None:

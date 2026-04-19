@@ -89,40 +89,21 @@ class MapsTab:
         if 'maps_view_mode' not in st.session_state:
             st.session_state.maps_view_mode = 'Median'
 
-        st.markdown("""
-        <style>
-        div[data-testid="stHorizontalBlock"] button[kind="secondary"] {
-            position: relative !important;
-            opacity: 0 !important;
-            height: 50px !important;
-            margin-top: -54px !important;
-            width: 100% !important;
-            cursor: pointer !important;
-            z-index: 10 !important;
-        }
-        </style>
-        """, unsafe_allow_html=True)
-
-        btn_cols = st.columns(len(self.VIEW_MODES))
-        for col, key in zip(btn_cols, self.VIEW_MODES):
-            is_active = st.session_state.maps_view_mode == key
-            bg     = 'linear-gradient(135deg,#4a2d6b,#764ba2)' if is_active else 'transparent'
-            color  = 'white' if is_active else '#764ba2'
-            weight = '700'   if is_active else '500'
+        cols = st.columns(len(self.VIEW_MODES))
+        for col, mode in zip(cols, self.VIEW_MODES):
+            is_active = st.session_state.maps_view_mode == mode
             with col:
-                st.markdown(f"""
-                <div style="text-align:center;padding:10px 6px;background:{bg};
-                            border:1.5px solid #764ba2;border-radius:8px;
-                            font-size:13px;font-weight:{weight};color:{color};
-                            margin-bottom:4px;min-height:50px;
-                            display:flex;align-items:center;justify-content:center;">
-                    {key}
-                </div>""", unsafe_allow_html=True)
-                if st.button(key, key=f'viewbtn_{key}', use_container_width=True):
-                    st.session_state.maps_view_mode = key
+                if st.button(
+                        mode,
+                        key=f'viewbtn_{mode}',
+                        use_container_width=True,
+                        type='primary' if is_active else 'secondary',
+                ):
+                    st.session_state.maps_view_mode = mode
                     st.rerun()
 
         return st.session_state.maps_view_mode
+
 
     # ── Median view ──────────────────────────────────────────────────────────
 
@@ -144,7 +125,7 @@ class MapsTab:
         self._widget.add_aoi_border(m, self._aoi)
         self._widget.add_draw_control(m)
         m.centerObject(self._aoi, 14)
-        out = self._widget.render(m)
+        out = self._widget.render(m, key=f'median_map_{selected_view}')
         if out and 'all_drawings' in out:
             st.session_state.latest_drawings = out['all_drawings']
 

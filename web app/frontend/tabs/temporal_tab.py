@@ -50,11 +50,17 @@ class TemporalTab:
         start_date = self._config['start_date']
         end_date   = self._config['end_date']
 
+        sample_size = self._config.get('sample_size', 20)
+
         # 1. Existing dates in DB
         existing_dates = self._repo.get_existing_dates(site, idx_name, start_date, end_date)
 
         # 2. All timestamps in GEE collection
         all_timestamps = self._collection.aggregate_array('system:time_start').getInfo()
+
+        if len(all_timestamps) > sample_size:
+            step = len(all_timestamps) // sample_size
+            all_timestamps = all_timestamps[::step]
 
         # 3. Only process dates missing from DB
         missing = [
@@ -88,9 +94,13 @@ class TemporalTab:
         df = self._repo.find_range(site, idx_name, start_date, end_date)
 
         if not df.empty:
+            df['value_smoothed'] = df['value'].rolling(window=3, center=True, min_periods=1).mean()
+
             chart_data = {
-                idx_name: dict(zip(df['analysis_date'].astype(str), df['value']))
+                f'{idx_name} (Raw)': dict(zip(df['analysis_date'].astype(str), df['value'])),
+                f'{idx_name} (Smooth)': dict(zip(df['analysis_date'].astype(str), df['value_smoothed']))
             }
+
             fig = self._charts.time_series(
                 chart_data,
                 title=f'{idx_name} — {site}',

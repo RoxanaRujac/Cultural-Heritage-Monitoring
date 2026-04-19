@@ -285,16 +285,3 @@ def render_land_cover_tab(results: dict) -> None:
             st.warning(f'Temporal analysis unavailable: {exc}')
 
     st.markdown('---')
-
-    # ── 6. Legend ────────────────────────────────────────────────────────────
-    with st.expander('Classification Legend', expanded=False):
-        cols = st.columns(3)
-        for i in range(9):
-            with cols[i % 3]:
-                st.markdown(
-                    f'<div style="background:#f9f6fd;padding:8px;border-radius:6px;'
-                    f'border-left:4px solid #{DW_CLASSES[i]["hex"]};margin:4px 0;">'
-                    f'<strong style="color:#4a2d6b;">{DW_CLASSES[i]["name"]}</strong>'
-                    f'<br><small style="color:#764ba2;">{DW_CLASSES[i]["description"]}</small></div>',
-                    unsafe_allow_html=True,
-                )

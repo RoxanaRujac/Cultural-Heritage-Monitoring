@@ -9,3 +9,5 @@ folium>=0.14.0
 streamlit-folium>=0.15.0
 mysql-connector-python>=8.0.0
 groq>=0.4.0
+fpdf2>=2.7.0
+playwright>=1.40.0

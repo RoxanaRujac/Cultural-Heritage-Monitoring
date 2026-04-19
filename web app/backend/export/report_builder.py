@@ -7,6 +7,9 @@ import json
 import pandas as pd
 from datetime import datetime
 from io import BytesIO
+from playwright.sync_api import sync_playwright
+from fpdf import FPDF
+import os
 
 
 class ReportBuilder:
@@ -113,6 +116,51 @@ class ReportBuilder:
         buf = BytesIO()
         pd.DataFrame(rows).to_csv(buf, index=False)
         return buf.getvalue()
+
+
+    def capture_map_image(html_path, output_image_path):
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            page = browser.new_page()
+
+            page.goto(f"file://{os.path.abspath(html_path)}")
+
+            page.wait_for_selector(".folium-map")
+
+            page.screenshot(path=output_image_path, full_page=True)
+            browser.close()
+
+    def as_pdf(self, maps_html: list = None) -> bytes:
+        """
+        Generate a PDF report as bytes. Optionally include map screenshots (as HTML strings) in the report.
+        """
+        pdf = FPDF()
+        pdf.add_page()
+
+        pdf.set_font("Arial", "B", 20)
+        pdf.set_text_color(118, 75, 162)
+        pdf.cell(0, 15, "Pdf Report", ln=True, align="C")
+
+        pdf.set_font("Arial", "B", 14)
+        pdf.set_text_color(0, 0, 0)
+        pdf.cell(0, 10, f"Sit: {self._config['site_name']}", ln=True)
+
+        pdf.set_font("Arial", "", 11)
+        pdf.multi_cell(0, 7, (
+            f"Location: {self._config['center_lat']:.6f}, {self._config['center_lon']:.6f}\n"
+            f"Period: {self._config['start_date']} - {self._config['end_date']}\n"
+            f"Analyzed images: {self._count} scene Sentinel-2"
+        ))
+
+        if image_paths:
+            for img_path in image_paths:
+                if os.path.exists(img_path):
+                    pdf.add_page()
+                    pdf.set_font("Arial", "B", 14)
+                    pdf.cell(0, 10, "Vizualizare Satelitară (Schimbări)", ln=True)
+                    # Adăugăm imaginea (w=190 ocupă aproape toată lățimea A4)
+                    pdf.image(img_path, x=10, y=30, w=190)
+        return pdf.output()
 
     def filename_base(self) -> str:
         """Return a safe filename prefix (no extension)."""

@@ -9,7 +9,10 @@ from backend.gee.index_calculator import IndexCalculator
 from backend.gee.statistics_calculator import StatisticsCalculator
 from backend.export.report_builder import ReportBuilder
 from frontend.components.metric_cards import MetricCards
+from backend.ai.ai_interpreter import AIInterpreter
 from config.indices_config import INDICES_CONFIG
+import tempfile
+import os
 
 
 class ReportTab:
@@ -35,6 +38,7 @@ class ReportTab:
         self._calc       = IndexCalculator()
         self._stats_calc = StatisticsCalculator()
         self._cards      = MetricCards()
+        self.ai = AIInterpreter()
 
     def render(self) -> None:
         st.subheader('Comprehensive Monitoring Report')
@@ -212,7 +216,7 @@ class ReportTab:
         builder = ReportBuilder(self._config, indices_stats, self._count)
         base    = builder.filename_base()
 
-        col1, col2, col3 = st.columns(3)
+        col1, col2, col3, col4 = st.columns(4)
 
         with col1:
             st.download_button(
@@ -236,6 +240,13 @@ class ReportTab:
                     file_name=f'{base}.csv',
                     mime='text/csv',
                 )
+        with col4:
+            st.download_button(
+                'Download PDF Report',
+                data=builder.as_pdf(),
+                file_name=f'{base}.pdf',
+                mime='application/pdf',
+            )
 
     # ── Private helpers ──────────────────────────────────────────────────────
 

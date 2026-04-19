@@ -7,15 +7,8 @@ import streamlit as st
 
 class MetricCards:
     """
-    Renders colourful summary cards using st.markdown + HTML.
+    Renders summary cards using st.markdown + HTML.
     Each card shows a label and a bold value.
-
-    Usage:
-        cards = MetricCards()
-        with st.columns(3) as cols:
-            cards.render_in_column(cols[0], 'Site', 'Alba Iulia', gradient='purple')
-            cards.render_in_column(cols[1], 'Images', '24 scenes', gradient='pink')
-            cards.render_in_column(cols[2], 'Time Span', '730 days', gradient='blue')
     """
 
     _GRADIENTS = {

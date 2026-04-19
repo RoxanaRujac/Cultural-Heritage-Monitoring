@@ -4,6 +4,7 @@ All methods receive plain Python data and return go.Figure instances.
 """
 
 import plotly.graph_objects as go
+from playwright.sync_api import sync_playwright
 
 _PALETTE = ['#764ba2', '#f0c040', '#9b6fc5', '#4a2d6b', '#d4a017', '#c084f5', '#1a1a2e', '#6b6b8a']
 
@@ -148,3 +149,6 @@ class ChartBuilder:
         ))
         fig.update_layout(title=title, template='plotly_white', height=500)
         return fig
+
+
+

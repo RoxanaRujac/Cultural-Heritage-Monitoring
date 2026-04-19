@@ -7,8 +7,13 @@
     <list default="true" id="13f16606-cf1c-4348-893a-38789e5dc876" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/app.py" beforeDir="false" afterPath="$PROJECT_DIR$/app.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/frontend/sidebar/sidebar.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/sidebar/sidebar.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/backend/export/report_builder.py" beforeDir="false" afterPath="$PROJECT_DIR$/backend/export/report_builder.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/tabs/change_tab.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tabs/change_tab.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/tabs/maps_tab.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tabs/maps_tab.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/frontend/tabs/report_tab.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tabs/report_tab.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/tabs/temporal_tab.py" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/tabs/temporal_tab.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements" beforeDir="false" afterPath="$PROJECT_DIR$/requirements" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/utils/visualization.py" beforeDir="false" afterPath="$PROJECT_DIR$/utils/visualization.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -88,7 +93,10 @@
       <workItem from="1775106816805" duration="1895000" />
       <workItem from="1775378192551" duration="7931000" />
       <workItem from="1775460958074" duration="26000" />
-      <workItem from="1775492857723" duration="2741000" />
+      <workItem from="1775492857723" duration="8624000" />
+      <workItem from="1775544178036" duration="37000" />
+      <workItem from="1776327712017" duration="678000" />
+      <workItem from="1776337718285" duration="27000" />
     </task>
     <servers />
   </component>

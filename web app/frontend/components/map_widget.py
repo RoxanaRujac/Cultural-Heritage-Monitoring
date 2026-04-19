@@ -76,7 +76,7 @@ class MapWidget:
                     font-family:monospace; font-size:14px; font-weight:700;
                     padding:6px 12px; border-radius:6px; border:1px solid #764ba2;
                     pointer-events:none; letter-spacing:1px;">
-            📅 {date_str} &nbsp; [{index}/{total}]
+             {date_str} &nbsp; [{index}/{total}]
         </div>
         """
         m.get_root().html.add_child(folium.Element(html))
