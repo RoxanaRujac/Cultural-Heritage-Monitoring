@@ -3,10 +3,12 @@ Responsible for: building the AI prompt and calling the Groq API.
 """
 
 from groq import Groq
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
-# Move to .env in production
-_GROQ_API_KEY = "miaumiau"
+_GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 
 _SYSTEM_PROMPT = (
     "You are an expert in satellite remote sensing and cultural heritage conservation."
@@ -44,7 +46,7 @@ class AIInterpreter:
         )
     """
 
-    MODEL        = 'llama-3.3-70b-versatile'
+    MODEL        = 'llama3-8b-8192'
     MAX_TOKENS   = 300
     TEMPERATURE  = 0.4
     FALLBACK_MSG = (
@@ -52,8 +54,11 @@ class AIInterpreter:
         "Please review the data and try again."
     )
 
-    def __init__(self, api_key: str = _GROQ_API_KEY):
-        self._client = Groq(api_key=api_key)
+    def __init__(self, api_key: str = None):
+        actual_key = api_key or os.getenv("GROQ_API_KEY")
+        if not actual_key:
+            raise ValueError("GROQ_API_KEY not found in environment or .env file")
+        self._client = Groq(api_key=actual_key)
 
     def interpret(
         self,

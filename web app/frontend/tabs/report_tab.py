@@ -13,6 +13,7 @@ from backend.ai.ai_interpreter import AIInterpreter
 from config.indices_config import INDICES_CONFIG
 import tempfile
 import os
+import io
 
 
 class ReportTab:
@@ -20,10 +21,10 @@ class ReportTab:
     Renders the full monitoring export tab:
     - Executive summary cards
     - Site + data parameters
-    - Per-index analysis with interpretation
+    - Per-index analysis with AI interpretation
     - Data quality assessment
     - Methodology section
-    - Download buttons (JSON / TXT / CSV)
+    - Download buttons (JSON / TXT / CSV / PDF)
 
     Usage:
         tab = ReportTab(results)
@@ -38,7 +39,7 @@ class ReportTab:
         self._calc       = IndexCalculator()
         self._stats_calc = StatisticsCalculator()
         self._cards      = MetricCards()
-        self.ai = AIInterpreter()
+        self.ai          = AIInterpreter()
 
     def render(self) -> None:
         st.subheader('Comprehensive Monitoring Report')
@@ -112,44 +113,79 @@ class ReportTab:
                 stats = indices_stats.get(idx, {})
                 self._cards.render_stats_row(stats, idx)
 
-                st.markdown('**Interpretation:**')
+                st.markdown('**AI Interpretation:**')
                 median_val = stats.get(f'{idx}_median', 0)
-                self._interpret(idx, median_val)
+                self._interpret_with_ai(idx, median_val)
 
-    def _interpret(self, idx: str, median_val: float) -> None:
-        """Simple rule-based interpretation (no AI — AI is in ChangeTab)."""
-        rules = {
-            'NDVI': [
-                (0.2,  'warning', 'Low vegetation cover. May indicate bare soil, urban areas, or stress.'),
-                (0.4,  'info',    'Moderate vegetation cover. Mix of vegetated and non-vegetated areas.'),
-                (None, 'success', 'Healthy vegetation cover detected.'),
-            ],
-            'NDBI': [
-                (0.3,  'warning', 'Significant built-up area. Monitor urban encroachment.'),
-                (0.0,  'info',    'Some built-up structures present.'),
-                (None, 'success', 'Predominantly natural landscape.'),
-            ],
-            'NDMI': [
-                (-0.2, 'warning', 'Low moisture content. Increased erosion risk.'),
-                (0.2,  'info',    'Moderate moisture levels. Normal conditions.'),
-                (None, 'success', 'High moisture content.'),
-            ],
-            'NDWI': [
-                (0.3,  'info', 'Significant water presence detected. Monitor for flooding risk.'),
-                (0.0,  'info', 'Some water bodies present.'),
-                (None, 'success', 'No significant water accumulation.'),
-            ],
-            'BSI': [
-                (0.3,  'warning', 'High bare soil exposure. Increased erosion vulnerability.'),
-                (0.0,  'info',    'Moderate soil exposure present.'),
-                (None, 'success', 'Minimal bare soil.'),
-            ],
-        }
-        for threshold, level, message in rules.get(idx, []):
-            if threshold is None or median_val < threshold:
-                getattr(st, level)(message)
-                return
-        st.info(f'**{idx}** median: {median_val:.4f}. Interpret in context of site conditions.')
+    def _interpret_with_ai(self, idx: str, median_val: float) -> None:
+        """Generate AI interpretation for a single index based on its median value."""
+        cache_key = f'report_ai_{idx}_{self._config["site_name"]}_{median_val:.4f}'
+
+        if cache_key not in st.session_state:
+            idc = INDICES_CONFIG.get(idx, {})
+            index_desc   = idc.get('description', '')
+            heritage_use = idc.get('heritage_use', '')
+            vmin         = idc.get('min', -1)
+            vmax         = idc.get('max', 1)
+
+            prompt = (
+                f"You are an expert in satellite remote sensing and cultural heritage conservation.\n\n"
+                f"A spectral index analysis for **{self._config['site_name']}** produced the following result:\n"
+                f"- Index: {idx}\n"
+                f"- Description: {index_desc}\n"
+                f"- Heritage relevance: {heritage_use}\n"
+                f"- Typical value range: {vmin} to {vmax}\n"
+                f"- Observed median value: {median_val:.4f}\n\n"
+                f"Provide a concise professional interpretation (4-5 sentences) covering:\n"
+                f"1. What this observed value physically represents for this site.\n"
+                f"2. Whether the value is concerning, normal, or positive relative to typical ranges.\n"
+                f"3. Any specific risks or opportunities for heritage conservation.\n"
+                f"4. One concrete recommended action for conservators.\n\n"
+                f"Write clearly and professionally for heritage conservation specialists. "
+                f"Respond in English only. Do not use bullet points — write in flowing prose."
+            )
+
+            with st.spinner(f'AI is analysing {idx}…'):
+                text = self.ai.FALLBACK_MSG
+                with st.spinner(f'AI is analysing {idx}…'):
+                    text = self.ai.interpret(
+                        index_name=idx,
+                        before_mean=median_val,
+                        after_mean=median_val,
+                        context=self._config['site_name'],
+                    )
+
+            st.session_state[cache_key] = text
+
+        ai_text = st.session_state[cache_key]
+
+        st.markdown(
+            f"""
+            <div style="
+                background: linear-gradient(135deg, #1a1a2e 0%, #2c2040 100%);
+                border: 1px solid rgba(118,75,162,0.5);
+                border-left: 4px solid #764ba2;
+                border-radius: 8px;
+                padding: 14px 18px;
+                margin-top: 10px;
+                color: #e8e0f0;
+                font-size: 14px;
+                line-height: 1.75;
+            ">
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+                    <span style="
+                        font-size:11px;
+                        font-weight:700;
+                        color:#f0c040;
+                        letter-spacing:1px;
+                        text-transform:uppercase;
+                    ">AI Analysis · {idx}</span>
+                </div>
+                <div style="color:#ddd8f0;">{ai_text}</div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
     def _render_data_quality(self) -> None:
         st.markdown('### Data Quality Assessment')
@@ -216,18 +252,46 @@ class ReportTab:
         builder = ReportBuilder(self._config, indices_stats, self._count)
         base    = builder.filename_base()
 
+        # ── Collect AI texts already generated in the session ─────────────────
+        ai_texts = {}
+        for idx in self._config['indices']:
+            stats = indices_stats.get(idx, {})
+            med   = stats.get(f'{idx}_median', 0)
+            ck    = f'report_ai_{idx}_{self._config["site_name"]}_{med:.4f}'
+            if ck in st.session_state:
+                ai_texts[idx] = st.session_state[ck]
+
+        # ── Pre-generate PDF bytes and cache them ─────────────────────────────
+        pdf_cache_key = f'pdf_bytes_{base}'
+        if pdf_cache_key not in st.session_state:
+            with st.spinner('Fetching satellite map thumbnails from GEE and building PDF… (20–60 s)'):
+                try:
+                    pdf_bytes = builder.as_pdf(
+                        ai_texts=ai_texts,
+                        collection=self._collection,
+                        aoi=self._aoi,
+                    )
+                    st.session_state[pdf_cache_key] = pdf_bytes
+                except Exception as exc:
+                    st.error(f'PDF generation failed: {exc}')
+                    import traceback
+                    st.code(traceback.format_exc())
+                    st.session_state[pdf_cache_key] = None
+
+        pdf_bytes = st.session_state.get(pdf_cache_key)
+
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
             st.download_button(
-                'Download JSON Report',
+                '⬇ JSON Report',
                 data=builder.as_json(),
                 file_name=f'{base}.json',
                 mime='application/json',
             )
         with col2:
             st.download_button(
-                'Download Text Report',
+                '⬇ Text Report',
                 data=builder.as_text(),
                 file_name=f'{base}.txt',
                 mime='text/plain',
@@ -235,18 +299,27 @@ class ReportTab:
         with col3:
             if indices_stats:
                 st.download_button(
-                    'Download Statistics CSV',
+                    '⬇ CSV Report',
                     data=builder.as_csv(),
                     file_name=f'{base}.csv',
                     mime='text/csv',
                 )
         with col4:
-            st.download_button(
-                'Download PDF Report',
-                data=builder.as_pdf(),
-                file_name=f'{base}.pdf',
-                mime='application/pdf',
-            )
+            if pdf_bytes:
+                st.download_button(
+                    '⬇ PDF Report',
+                    data=pdf_bytes,
+                    file_name=f'{base}.pdf',
+                    mime='application/pdf',
+                    type='primary',
+                )
+            else:
+                if st.button('⬇ PDF Report', type='primary', use_container_width=True,
+                             key='pdf_retry'):
+                    # Clear cache so next render re-tries generation
+                    if pdf_cache_key in st.session_state:
+                        del st.session_state[pdf_cache_key]
+                    st.rerun()
 
     # ── Private helpers ──────────────────────────────────────────────────────
 

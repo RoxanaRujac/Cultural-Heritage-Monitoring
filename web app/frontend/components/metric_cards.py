@@ -4,20 +4,9 @@ Responsible for: rendering styled HTML metric cards in Streamlit.
 
 import streamlit as st
 
+off_white = '#f8f9fa'
 
 class MetricCards:
-    """
-    Renders summary cards using st.markdown + HTML.
-    Each card shows a label and a bold value.
-    """
-
-    _GRADIENTS = {
-        'purple': 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-        'pink':   'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
-        'blue':   'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
-        'green':  'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
-        'orange': 'linear-gradient(135deg, #f7971e 0%, #ffd200 100%)',
-    }
 
     def render_in_column(
         self,
@@ -37,11 +26,11 @@ class MetricCards:
             icon:     Optional emoji prefix for the label.
             gradient: Key from _GRADIENTS (purple/pink/blue/green/orange).
         """
-        bg = self._GRADIENTS.get(gradient, self._GRADIENTS['purple'])
+        bg = off_white
         with col:
             st.markdown(f"""
-            <div style='background:{bg}; padding:20px; border-radius:10px; color:white;'>
-                <h4 style='margin:0; color:white;'>{icon} {label}</h4>
+            <div style='background:{bg}; padding:20px; border-radius:10px; color:#2c3e50;'>
+                <h4 style='margin:0; color:#2c3e50;'>{icon} {label}</h4>
                 <p style='margin:10px 0 0 0; font-size:18px;'><strong>{value}</strong></p>
             </div>
             """, unsafe_allow_html=True)
